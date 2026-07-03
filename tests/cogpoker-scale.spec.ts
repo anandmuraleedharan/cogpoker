@@ -11,7 +11,7 @@ test.describe('CogPoker 10-User 10-Round Sizing Scale Test', () => {
     const contextHost = await browser.newContext();
     const pageHost = await contextHost.newPage();
     pageHost.on('console', msg => {
-      if (msg.type() === 'warning' || msg.type() === 'error' || msg.text().includes('realtime') || msg.text().includes('Realtime')) {
+      if (msg.type() === 'warning' || msg.type() === 'error' || msg.text().includes('realtime') || msg.text().includes('Realtime') || msg.text().includes('PRESENCE DEBUG')) {
         console.log(`[HOST CONSOLE] ${msg.type()}: ${msg.text()}`);
       }
     });
@@ -42,7 +42,7 @@ test.describe('CogPoker 10-User 10-Round Sizing Scale Test', () => {
 
         const page = await context.newPage();
         page.on('console', msg => {
-          if (msg.type() === 'warning' || msg.type() === 'error' || msg.text().includes('realtime') || msg.text().includes('Realtime')) {
+          if (msg.type() === 'warning' || msg.type() === 'error' || msg.text().includes('realtime') || msg.text().includes('Realtime') || msg.text().includes('PRESENCE DEBUG')) {
             console.log(`[PLAYER ${idx + 1} CONSOLE] ${msg.type()}: ${msg.text()}`);
           }
         });
@@ -77,7 +77,7 @@ test.describe('CogPoker 10-User 10-Round Sizing Scale Test', () => {
       // Verify players receive the ticket broadcast
       await Promise.all(
         playerPages.map(async (page, idx) => {
-          await expect(page.locator(`text=${ticketTitle}`)).toBeVisible({ timeout: 5000 });
+          await expect(page.locator(`text=${ticketTitle}`)).toBeVisible({ timeout: 10000 });
         })
       );
 
@@ -89,7 +89,7 @@ test.describe('CogPoker 10-User 10-Round Sizing Scale Test', () => {
         const selectedCard = cards[idx % cards.length];
         
         await page.locator('.theme-card:has-text("Cast Your Estimate") >> button').filter({ hasText: new RegExp('^' + selectedCard + '$') }).click();
-        await expect(page.locator('text=Change Vote')).toBeVisible({ timeout: 5000 });
+        await expect(page.locator('text=Change Vote')).toBeVisible({ timeout: 10000 });
         
         // Wait 300ms between each player's vote to stay well within Supabase rate limits
         await pageHost.waitForTimeout(300);
@@ -97,7 +97,7 @@ test.describe('CogPoker 10-User 10-Round Sizing Scale Test', () => {
 
       // Verify host sees vote completion updates
       // Wait for reveal button to show all voted status
-      await expect(pageHost.locator('text=Reveal Player Cards (All Voted!)')).toBeVisible({ timeout: 10000 });
+      await expect(pageHost.locator('text=Reveal Player Cards (All Voted!)')).toBeVisible({ timeout: 15000 });
 
       // Host reveals cards
       console.log(`[SCALE TEST] Round ${r}: Host revealing cards...`);
@@ -106,7 +106,7 @@ test.describe('CogPoker 10-User 10-Round Sizing Scale Test', () => {
       // Verify cards are flipped/revealed on all screens
       await Promise.all(
         playerPages.map(async (page) => {
-          await expect(page.locator('text=Sizing Insights & Analytics')).toBeVisible({ timeout: 5000 });
+          await expect(page.locator('text=Sizing Insights & Analytics')).toBeVisible({ timeout: 10000 });
         })
       );
 

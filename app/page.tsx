@@ -35,6 +35,10 @@ function HomeContent() {
 
     if (!targetRoomId) return;
 
+    if (mode === 'create') {
+      sessionStorage.setItem(`cogpoker_creator_${targetRoomId}`, 'true');
+    }
+
     router.push(`/room/${targetRoomId}`);
   };
 

@@ -96,6 +96,7 @@ export default function Room() {
   const [ticketDesc, setTicketDesc] = useState('');
   const [currentTrack, setCurrentTrack] = useState<EstimationTrack>('human');
   const [inviteAI, setInviteAI] = useState(false);
+  const [isRoundActive, setIsRoundActive] = useState(false);
 
   // Player Vote State
   const [factors, setFactors] = useState<FactorScores>(getInitialFactors('human'));
@@ -171,19 +172,29 @@ export default function Room() {
     }
     setUserId(savedId);
 
-    let savedJoinedAt = sessionStorage.getItem('cogpoker_joined_at');
+    let savedJoinedAt = sessionStorage.getItem(`cogpoker_joined_at_${roomId}`);
     let timestamp = Date.now();
     if (savedJoinedAt) {
       timestamp = parseInt(savedJoinedAt);
     } else {
-      sessionStorage.setItem('cogpoker_joined_at', timestamp.toString());
+      sessionStorage.setItem(`cogpoker_joined_at_${roomId}`, timestamp.toString());
     }
     setJoinedAt(timestamp);
+
+    const isCreator = sessionStorage.getItem(`cogpoker_creator_${roomId}`) === 'true';
+    setIsHost(isCreator);
   }, [roomId, router]);
 
-  // Apply state updates locally
   const applyLocalTicketUpdate = (title: string, desc: string, track: EstimationTrack, ai: boolean, style?: DeckStyle) => {
     console.log('Applying ticket update locally:', { title, desc, track, ai, style });
+    
+    // Check if the ticket details actually changed.
+    // If they did not change, do NOT clear the player's vote/selectedCard!
+    const isDifferentTicket =
+      title !== stateRef.current.ticketTitle ||
+      desc !== stateRef.current.ticketDesc ||
+      track !== stateRef.current.currentTrack;
+
     setTicketTitle(title);
     setTicketDesc(desc);
     setCurrentTrack(track);
@@ -191,10 +202,19 @@ export default function Room() {
     if (style) {
       setDeckStyle(style);
     }
-    setRevealed(false);
-    setSelectedCard(null);
-    setAiEstimate(null);
-    setAcceptedValue('');
+    
+    // Set round as active if there is an active ticket title
+    setIsRoundActive(title !== '');
+    
+    if (isDifferentTicket) {
+      console.log('Ticket details changed. Resetting votes and AI estimate.');
+      setRevealed(false);
+      setSelectedCard(null);
+      setAiEstimate(null);
+      setAcceptedValue('');
+    } else {
+      console.log('Ticket details unchanged (sync). Preserving current votes.');
+    }
   };
 
   const applyLocalResetRound = () => {
@@ -204,12 +224,8 @@ export default function Room() {
     setAiError(false);
     setAcceptedValue('');
     setFactors(getInitialFactors(currentTrack));
-
-    // Stagger clearing the selectedCard state to spread out WebSocket deselect presence traffic
-    const playerNum = parseInt(username.replace(/\D/g, '')) || 0;
-    setTimeout(() => {
-      setSelectedCard(null);
-    }, playerNum * 150);
+    setSelectedCard(null);
+    setIsRoundActive(false);
   };
 
   // 2. Setup Supabase Realtime Channel
@@ -258,7 +274,10 @@ export default function Room() {
       .on('broadcast', { event: 'ROUND_COMPLETED' }, ({ payload }) => {
         console.log('Received ROUND_COMPLETED broadcast:', payload);
         audio.playComplete(stateRef.current.currentTheme);
-        setRoundsHistory(prev => [...prev, payload.completedRound]);
+        setRoundsHistory(prev => {
+          if (prev.some(r => r.id === payload.completedRound.id)) return prev;
+          return [...prev, payload.completedRound];
+        });
         setParticipants(prev => prev.map(p => ({ ...p, voteCast: false, voteValue: undefined })));
         applyLocalResetRound();
         setTicketTitle('');
@@ -298,34 +317,32 @@ export default function Room() {
         }
       });
 
-      // Sort participants by oldest joinedAt to dynamically assign Host
-      const sortedParticipants = [...updatedParticipants].sort((a, b) => a.joinedAt - b.joinedAt);
-      
-      const oldestParticipant = sortedParticipants[0];
-      const amIHost = oldestParticipant && oldestParticipant.userId === userId;
-      
-      setIsHost(!!amIHost);
-
-      const mappedParticipants = sortedParticipants.map((p, index) => ({
+      // Map participants to preserve their tracked isHost flags
+      const mappedParticipants = updatedParticipants.map((p) => ({
         ...p,
-        isHost: index === 0
+        isHost: p.isHost || false,
       }));
 
-      setParticipants(mappedParticipants);
+      const sortedMapped = [...mappedParticipants].sort((a, b) => a.joinedAt - b.joinedAt);
+      console.log(`[PRESENCE DEBUG] User: ${username} (Host: ${stateRef.current.isHost}) - Participants:`, JSON.stringify(sortedMapped.map(p => ({ name: p.name, isHost: p.isHost, voteCast: p.voteCast, voteValue: p.voteValue }))));
+      setParticipants(sortedMapped);
 
-      // If host status just changed to true, broadcast the current ticket state to sync other users
-      if (amIHost && !stateRef.current.isHost) {
-        console.log('Dynamically promoted to Host. Broadcasting current ticket details.');
-        broadcastTicketUpdate(
-          stateRef.current.ticketTitle || 'Example Feature: Implement user auth fallback',
-          stateRef.current.ticketDesc || 'Implement fallback auth system to allow login when main oauth providers are unavailable.',
-          stateRef.current.currentTrack,
-          stateRef.current.inviteAI
-        );
+      // Find if there is an active host in the room
+      const hostParticipant = sortedMapped.find((p) => p.isHost);
+      const hostExists = !!hostParticipant;
+
+      // If no active Host exists, promote the oldest participant in the room
+      if (!hostExists && sortedMapped.length > 0) {
+        const oldest = sortedMapped[0];
+        console.log(`No active Host found in room. Promoting oldest participant: ${oldest.name}`);
+        if (oldest.userId === userId) {
+          setIsHost(true);
+          sessionStorage.setItem(`cogpoker_creator_${roomId}`, 'true');
+        }
       }
 
       // If we are NOT the host, ask host to sync ticket details if title is empty
-      if (oldestParticipant && !amIHost && !stateRef.current.ticketTitle) {
+      if (hostExists && !stateRef.current.isHost && !stateRef.current.ticketTitle) {
         console.log('Not host. Requesting ticket sync from host.');
         channel.send({
           type: 'broadcast',
@@ -357,6 +374,7 @@ export default function Room() {
         await channel.track({
           name: username,
           joinedAt: joinedAt,
+          isHost: isHost,
           voteCast: selectedCard !== null,
           voteValue: selectedCard,
           factors: factors,
@@ -367,7 +385,13 @@ export default function Room() {
       }
     });
 
+    const handleBeforeUnload = () => {
+      channel.unsubscribe();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       channel.unsubscribe();
       channelRef.current = null;
     };
@@ -379,19 +403,13 @@ export default function Room() {
       channelRef.current.track({
         name: username,
         joinedAt: joinedAt,
+        isHost: isHost,
         voteCast: selectedCard !== null,
         voteValue: selectedCard,
         factors: factors,
       });
     }
-  }, [selectedCard, factors, isConnected, username, joinedAt]);
-
-  // Auto trigger AI estimate when Host sets inviteAI to true on a new/updated ticket
-  useEffect(() => {
-    if (isHost && inviteAI && ticketTitle && !aiEstimate && !isAiLoading) {
-      triggerAIEstimate();
-    }
-  }, [isHost, inviteAI, ticketTitle, currentTrack]);
+  }, [selectedCard, factors, isConnected, username, joinedAt, isHost]);
 
   // Helper: Broadcast ticket details
   const broadcastTicketUpdate = async (title: string, desc: string, track: EstimationTrack, ai: boolean, style?: DeckStyle) => {
@@ -420,6 +438,10 @@ export default function Room() {
 
     applyLocalTicketUpdate(ticketTitle, ticketDesc, currentTrack, inviteAI, deckStyle);
     broadcastTicketUpdate(ticketTitle, ticketDesc, currentTrack, inviteAI, deckStyle);
+
+    if (inviteAI) {
+      triggerAIEstimate();
+    }
   };
 
   // Host Action: Trigger Card Reveal
@@ -480,7 +502,10 @@ export default function Room() {
       });
       console.log('ROUND_COMPLETED broadcast status:', status);
 
-      setRoundsHistory(prev => [...prev, roundData]);
+      setRoundsHistory(prev => {
+        if (prev.some(r => r.id === roundData.id)) return prev;
+        return [...prev, roundData];
+      });
       setParticipants(prev => prev.map(p => ({ ...p, voteCast: false, voteValue: undefined })));
       applyLocalResetRound();
       setTicketTitle('');
@@ -799,10 +824,11 @@ export default function Room() {
                       id="ticket-title"
                       type="text"
                       required
+                      disabled={isRoundActive}
                       value={ticketTitle}
                       onChange={(e) => setTicketTitle(e.target.value)}
                       placeholder="e.g. Implement user auth fallback"
-                      className="px-3.5 py-2.5 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-color)] focus:outline-none focus:theme-accent-border transition-colors font-medium"
+                      className="px-3.5 py-2.5 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-color)] focus:outline-none focus:theme-accent-border transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -810,11 +836,12 @@ export default function Room() {
                     <label className="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Ticket Description</label>
                     <textarea
                       id="ticket-desc"
+                      disabled={isRoundActive}
                       value={ticketDesc}
                       onChange={(e) => setTicketDesc(e.target.value)}
                       placeholder="Provide core architecture details, dependencies, and validation guidelines..."
                       rows={4}
-                      className="px-3.5 py-2.5 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-color)] focus:outline-none focus:theme-accent-border transition-colors resize-none font-medium"
+                      className="px-3.5 py-2.5 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-color)] focus:outline-none focus:theme-accent-border transition-colors resize-none font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -825,8 +852,9 @@ export default function Room() {
                         <button
                           key={t}
                           type="button"
+                          disabled={isRoundActive}
                           onClick={() => setCurrentTrack(t)}
-                          className={`py-2 px-1 text-center font-bold text-[10px] rounded-lg uppercase tracking-wider border transition-all ${
+                          className={`py-2 px-1 text-center font-bold text-[10px] rounded-lg uppercase tracking-wider border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                             currentTrack === t 
                               ? 'theme-accent-glow-bg theme-accent-text border-[var(--accent-color)] shadow-sm' 
                               : 'bg-[var(--bg-color)] border-[var(--border-color)] theme-text-muted hover:theme-accent-text'
@@ -841,9 +869,10 @@ export default function Room() {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Choose Card Deck</label>
                     <select
+                      disabled={isRoundActive}
                       value={deckStyle}
                       onChange={(e) => handleDeckStyleChange(e.target.value as DeckStyle)}
-                      className="w-full px-3.5 py-2.5 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-xs font-bold text-[var(--text-color)] focus:outline-none focus:theme-accent-border transition-colors cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg text-xs font-bold text-[var(--text-color)] focus:outline-none focus:theme-accent-border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       <option value="scrum">Scrum: 0, ½, 1, 2, 3, 5, 8, 13, 20, 40, 100, ?</option>
                       <option value="fibonacci">Fibonacci: 0, ½, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, ?</option>
@@ -860,19 +889,32 @@ export default function Room() {
                       <span className="text-xs font-bold text-[var(--text-color)]">Invite AI Estimator</span>
                       <span className="text-[10px] theme-text-muted">Calculates peer AI recommendation</span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={inviteAI}
-                      onChange={(e) => setInviteAI(e.target.checked)}
-                      className="w-4 h-4 rounded border-[var(--border-color)] text-[var(--accent-color)] focus:ring-[var(--accent-color)] bg-[var(--bg-color)]"
-                    />
+                    <button
+                      type="button"
+                      disabled={isRoundActive}
+                      onClick={() => setInviteAI(!inviteAI)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${
+                        inviteAI ? 'theme-accent-bg' : 'bg-[var(--border-color)]'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          inviteAI ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3 theme-accent-bg text-[var(--bg-color)] font-bold rounded-lg text-xs tracking-wider uppercase hover:opacity-90 active:scale-[0.99] transition-all shadow-md"
+                    disabled={isRoundActive}
+                    className={`w-full py-3 font-bold rounded-lg text-xs tracking-wider uppercase transition-all shadow-md disabled:cursor-not-allowed ${
+                      isRoundActive 
+                        ? 'bg-[var(--border-color)] theme-text-muted border border-[var(--border-color)] opacity-60' 
+                        : 'theme-accent-bg text-[var(--bg-color)] hover:opacity-90 active:scale-[0.99]'
+                    }`}
                   >
-                    Broadcast Ticket Update
+                    {isRoundActive ? 'Round in Progress (Locked)' : 'Broadcast Ticket Update'}
                   </button>
                 </form>
               </div>
