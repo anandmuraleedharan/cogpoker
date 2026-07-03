@@ -1,0 +1,236 @@
+@import "tailwindcss";
+
+/* Design System & Themes Configuration */
+:root {
+  /* Default: Space Odyssey Light Mode */
+  --bg-color: #f8fafc;
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --border-color: rgba(203, 213, 225, 0.7);
+  --text-color: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+  --accent-color: #4f46e5; /* indigo-600 */
+  --accent-glow: rgba(79, 70, 229, 0.1);
+  --theme-font: var(--font-geist-sans), system-ui, sans-serif;
+  --theme-border-radius: 1rem;
+  --theme-border-style: solid;
+  --theme-border-width: 1px;
+  --theme-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --grid-pattern: radial-gradient(circle, rgba(79, 70, 229, 0.05) 1px, transparent 1px);
+  --grid-size: 24px 24px;
+}
+
+/* Theme: Space Odyssey (Dark Mode) */
+.theme-space.mode-dark {
+  --bg-color: #020617;
+  --card-bg: rgba(15, 23, 42, 0.65);
+  --border-color: rgba(51, 65, 85, 0.5);
+  --text-color: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --accent-color: #8b5cf6; /* violet-500 */
+  --accent-glow: rgba(139, 92, 246, 0.15);
+  --theme-font: var(--font-geist-sans), system-ui, sans-serif;
+  --theme-border-radius: 1rem;
+  --theme-border-style: solid;
+  --theme-border-width: 1px;
+  --theme-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  --grid-pattern: radial-gradient(circle, rgba(139, 92, 246, 0.08) 1px, transparent 1px);
+  --grid-size: 32px 32px;
+}
+
+/* Theme: Cyberpunk (Dark Mode) */
+.theme-cyberpunk.mode-dark {
+  --bg-color: #050508;
+  --card-bg: rgba(10, 10, 12, 0.95);
+  --border-color: #ec4899; /* Hot Pink */
+  --text-color: #00ffff; /* Neon Cyan */
+  --text-muted: #f43f5e; /* Rose */
+  --text-dim: #71717a;
+  --accent-color: #06b6d4; /* Cyan */
+  --accent-glow: rgba(6, 182, 212, 0.15);
+  --theme-font: var(--font-geist-mono), monospace;
+  --theme-border-radius: 0px;
+  --theme-border-style: solid;
+  --theme-border-width: 2px;
+  --theme-shadow: 0 0 15px rgba(236, 72, 153, 0.25);
+  --grid-pattern: linear-gradient(to right, rgba(236, 72, 153, 0.04) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(236, 72, 153, 0.04) 1px, transparent 1px);
+  --grid-size: 20px 20px;
+}
+.theme-cyberpunk.mode-light {
+  --bg-color: #fafafa;
+  --card-bg: rgba(255, 255, 255, 0.98);
+  --border-color: #db2777; /* Deep Pink */
+  --text-color: #0891b2; /* Deep Cyan */
+  --text-muted: #be185d;
+  --text-dim: #71717a;
+  --accent-color: #c026d3; /* Fuchsia */
+  --accent-glow: rgba(192, 38, 211, 0.08);
+  --theme-font: var(--font-geist-mono), monospace;
+  --theme-border-radius: 0px;
+  --theme-border-style: solid;
+  --theme-border-width: 2px;
+  --theme-shadow: 0 0 10px rgba(219, 39, 119, 0.15);
+  --grid-pattern: linear-gradient(to right, rgba(219, 39, 119, 0.04) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(219, 39, 119, 0.04) 1px, transparent 1px);
+  --grid-size: 20px 20px;
+}
+
+/* Theme: Guild Tavern (Dark Mode) */
+.theme-tavern.mode-dark {
+  --bg-color: #120904; /* Deep Warm Charcoal Brown */
+  --card-bg: #1e1107;
+  --border-color: #b45309; /* Bronze/Amber */
+  --text-color: #fef3c7; /* Pale gold */
+  --text-muted: #d97706; /* Muted amber */
+  --text-dim: #78350f;
+  --accent-color: #f59e0b; /* Bright amber */
+  --accent-glow: rgba(245, 158, 11, 0.08);
+  --theme-font: Georgia, serif;
+  --theme-border-radius: 0.375rem;
+  --theme-border-style: solid;
+  --theme-border-width: 3px;
+  --theme-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --grid-pattern: radial-gradient(circle, rgba(217, 119, 6, 0.05) 1.5px, transparent 1.5px);
+  --grid-size: 40px 40px;
+}
+.theme-tavern.mode-light {
+  --bg-color: #fdf8f0; /* Soft parchment beige */
+  --card-bg: #f9f0e0;
+  --border-color: #854d0e; /* Dark wood brown */
+  --text-color: #451a03; /* Deep leather brown */
+  --text-muted: #78350f;
+  --text-dim: #b45309;
+  --accent-color: #b45309;
+  --accent-glow: rgba(180, 83, 9, 0.05);
+  --theme-font: Georgia, serif;
+  --theme-border-radius: 0.375rem;
+  --theme-border-style: solid;
+  --theme-border-width: 3px;
+  --theme-shadow: 0 4px 10px rgba(69, 26, 3, 0.1);
+  --grid-pattern: radial-gradient(circle, rgba(133, 77, 14, 0.04) 1.5px, transparent 1.5px);
+  --grid-size: 40px 40px;
+}
+
+/* Theme: Retro Arcade (Dark Mode) */
+.theme-arcade.mode-dark {
+  --bg-color: #0c1020; /* Arcade cabinet interior shadow */
+  --card-bg: #151b30;
+  --border-color: #eab308; /* Neon arcade gold */
+  --text-color: #22c55e; /* Retro green */
+  --text-muted: #ef4444; /* Neon red */
+  --text-dim: #6b7280;
+  --accent-color: #f43f5e; /* Cyberpunk pinkish red */
+  --accent-glow: rgba(244, 63, 94, 0.15);
+  --theme-font: var(--font-geist-mono), monospace;
+  --theme-border-radius: 0.25rem;
+  --theme-border-style: double;
+  --theme-border-width: 4px;
+  --theme-shadow: 0 0 10px rgba(234, 179, 8, 0.2);
+  --grid-pattern: linear-gradient(to right, rgba(34, 197, 94, 0.03) 2px, transparent 2px),
+                  linear-gradient(to bottom, rgba(34, 197, 94, 0.03) 2px, transparent 2px);
+  --grid-size: 25px 25px;
+}
+.theme-arcade.mode-light {
+  --bg-color: #e5e7eb;
+  --card-bg: #f3f4f6;
+  --border-color: #a16207;
+  --text-color: #166534;
+  --text-muted: #b91c1c;
+  --text-dim: #6b7280;
+  --accent-color: #b91c1c;
+  --accent-glow: rgba(185, 28, 28, 0.05);
+  --theme-font: var(--font-geist-mono), monospace;
+  --theme-border-radius: 0.25rem;
+  --theme-border-style: double;
+  --theme-border-width: 4px;
+  --theme-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --grid-pattern: linear-gradient(to right, rgba(22, 101, 52, 0.03) 2px, transparent 2px),
+                  linear-gradient(to bottom, rgba(22, 101, 52, 0.03) 2px, transparent 2px);
+  --grid-size: 25px 25px;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--theme-font);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base Theme container background structure */
+.theme-container {
+  background-color: var(--bg-color);
+  background-image: var(--grid-pattern);
+  background-size: var(--grid-size);
+  color: var(--text-color);
+  font-family: var(--theme-font);
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Immersive Card Styles */
+.theme-card {
+  background-color: var(--card-bg);
+  border: var(--theme-border-width) var(--theme-border-style) var(--border-color);
+  border-radius: var(--theme-border-radius);
+  color: var(--text-color);
+  box-shadow: var(--theme-shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Theme specific overrides to ensure the themes look drastically different */
+.theme-cyberpunk .theme-card {
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.theme-tavern .theme-card {
+  box-shadow: inset 0 0 10px rgba(120, 53, 15, 0.15), var(--theme-shadow);
+}
+
+.theme-arcade .theme-card {
+  image-rendering: pixelated;
+  box-shadow: 4px 4px 0px #000;
+}
+
+/* Accent texts, backgrounds and borders */
+.theme-text-muted {
+  color: var(--text-muted);
+}
+
+.theme-text-dim {
+  color: var(--text-dim);
+}
+
+.theme-accent-border {
+  border-color: var(--accent-color);
+}
+
+.theme-accent-text {
+  color: var(--accent-color);
+}
+
+.theme-accent-bg {
+  background-color: var(--accent-color);
+}
+
+.theme-accent-glow-bg {
+  background-color: var(--accent-glow);
+}
+
+/* Animation presets */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
