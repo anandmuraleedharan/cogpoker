@@ -776,6 +776,23 @@ export default function Room() {
             )}
           </button>
 
+          {/* User Profile Badge */}
+          {username && (
+            <div className="flex items-center gap-2 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs font-semibold select-none">
+              <div className="w-5 h-5 rounded-full bg-[var(--accent-glow)] border border-[var(--accent-color)] flex items-center justify-center text-[10px] font-extrabold theme-accent-text uppercase">
+                {username.charAt(0)}
+              </div>
+              <span className="font-bold text-[var(--text-color)] max-w-[80px] sm:max-w-[120px] truncate">{username}</span>
+              <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                isHost 
+                  ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' 
+                  : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
+              }`}>
+                {isHost ? 'Host' : 'Player'}
+              </span>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-lg px-3 py-1.5 text-xs font-bold theme-accent-text tracking-wider">
             ROOM: {roomId}
           </div>
